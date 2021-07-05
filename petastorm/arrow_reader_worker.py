@@ -293,7 +293,7 @@ class ArrowReaderWorker(WorkerBase):
 
         # pyarrow would fail if we request a column names that the dataset is partitioned by
         ds = dataset(pq_file, format="parquet", partitioning=self._dataset.partitions)
-        table = ds.to_table(columns=list(column_names - partition_names))
+        table = ds.to_table(use_threads=False, columns=list(column_names - partition_names))
 
         # Drop columns we did not explicitly request. This may happen when a table is partitioned. Besides columns
         # requested, pyarrow will also return partition values. Having these unexpected fields will break some
