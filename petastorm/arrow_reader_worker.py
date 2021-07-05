@@ -21,6 +21,7 @@ import pandas as pd
 import pyarrow as pa
 from pyarrow import parquet as pq
 from pyarrow.parquet import ParquetFile
+from pyarrow.dataset import dataset
 
 from petastorm.cache import NullCache
 from petastorm.workers_pool import EmptyResultError
@@ -140,7 +141,7 @@ class ArrowReaderWorker(WorkerBase):
         piece = self._split_pieces[piece_index]
 
         # Create pyarrow file system
-        parquet_file = ParquetFile(self._dataset.fs.open(piece.path))
+        parquet_file = piece.path
 
         if not isinstance(self._local_cache, NullCache):
             if worker_predicate:
@@ -291,7 +292,8 @@ class ArrowReaderWorker(WorkerBase):
         partition_names = self._dataset.partitions.partition_names
 
         # pyarrow would fail if we request a column names that the dataset is partitioned by
-        table = piece.read(columns=column_names - partition_names, partitions=self._dataset.partitions)
+        ds = dataset(pq_file, format="parquet", partitioning=self._dataset.partitions)
+        table = ds.to_table(use_threads=False, columns=list(column_names - partition_names))
 
         # Drop columns we did not explicitly request. This may happen when a table is partitioned. Besides columns
         # requested, pyarrow will also return partition values. Having these unexpected fields will break some
